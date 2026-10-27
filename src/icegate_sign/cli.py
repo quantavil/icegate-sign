@@ -37,6 +37,8 @@ def cmd_sign(args) -> int:
     for f in args.files:
         dest = output_path(f, outdir)
         try:
+            if not f.exists() and not f.is_symlink():
+                raise ValueError("no such file; quote names that contain spaces")
             if f.is_symlink() or not f.is_file():
                 raise ValueError("not a regular file")
             kind = f.suffix.lower()
