@@ -161,3 +161,10 @@ def test_certs_and_doctor_report_without_token(tmp_path, monkeypatch, capsys):
         raise RuntimeError("no token found")
     monkeypatch.setattr(token, "token_info", boom)
     assert cli.main(["certs"]) == 1 and cli.main(["doctor", "--module", str(mod)]) == 1
+
+
+def test_command_word_is_optional(tmp_path, fake_token, capsys):
+    f = tmp_path / "a.be"; f.write_bytes(b"x")
+    assert cli.main(["-n", str(f)]) == 0  # options or files first means `sign`
+    assert cli.main([str(f), "--dry-run"]) == 0
+    assert capsys.readouterr().out.count("would sign") == 2

@@ -173,7 +173,7 @@ def main(argv=None) -> int:
         prog="icegate-sign", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""examples:
   icegate-sign certs                        show the token's certificate and days until expiry
-  icegate-sign sign invoice.pdf *.sb        sign files (asks for the PIN once)
+  icegate-sign invoice.pdf *.sb             sign files (asks for the PIN once; same as 'icegate-sign sign ...')
   icegate-sign sign -n *.be                 dry run: check files, no token, no PIN
   icegate-sign verify invoice[signed].pdf   check signatures
   icegate-sign doctor                       diagnose the setup
@@ -206,6 +206,9 @@ Use 'icegate-sign COMMAND --help' for a command's options.""")
     p = with_module(sub.add_parser("doctor", help="diagnose pcscd, PKCS#11 module, token and certificate"))
     p.set_defaults(func=cmd_doctor)
 
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv and argv[0] not in (*sub.choices, "-h", "--help", "--version"):
+        argv.insert(0, "sign")  # `icegate-sign file.pdf` is shorthand for `icegate-sign sign file.pdf`
     args = ap.parse_args(argv)
     return args.func(args)
 
