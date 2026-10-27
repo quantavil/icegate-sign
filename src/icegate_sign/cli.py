@@ -169,7 +169,17 @@ def cmd_doctor(args) -> int:
 # ---- entry point -------------------------------------------------------------
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(prog="icegate-sign", description=__doc__)
+    ap = argparse.ArgumentParser(
+        prog="icegate-sign", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""examples:
+  icegate-sign certs                        show the token's certificate and days until expiry
+  icegate-sign sign invoice.pdf *.sb        sign files (asks for the PIN once)
+  icegate-sign sign -n *.be                 dry run: check files, no token, no PIN
+  icegate-sign verify invoice[signed].pdf   check signatures
+  icegate-sign doctor                       diagnose the setup
+
+Signed files are written as name[signed].ext beside the originals; existing files are never overwritten.
+Use 'icegate-sign COMMAND --help' for a command's options.""")
     ap.add_argument("--version", action="version", version=f"%(prog)s {_version()}")
     sub = ap.add_subparsers(dest="command", required=True, metavar="command")
 
@@ -178,7 +188,7 @@ def main(argv=None) -> int:
         return p
 
     p = with_module(sub.add_parser("sign", help="sign BE/SB/TXT/XML and PDF files (writes name[signed].ext)"))
-    p.add_argument("files", nargs="+", type=Path)
+    p.add_argument("files", nargs="+", type=Path, metavar="FILE", help="files to sign: .be .sb .txt .xml .pdf")
     p.add_argument("--cert", help="certificate label or common name, if the token has several")
     p.add_argument("--pin-stdin", action="store_true", help="read the PIN from stdin instead of prompting (never pass it as an argument)")
     p.add_argument("--pages", default="A", help="PDF signature pages: A all (default), F first, L last, or 1,3,5")
@@ -187,7 +197,7 @@ def main(argv=None) -> int:
     p.set_defaults(func=cmd_sign)
 
     p = sub.add_parser("verify", help="check signatures of signed files (integrity only, no token needed)")
-    p.add_argument("files", nargs="+", type=Path)
+    p.add_argument("files", nargs="+", type=Path, metavar="FILE", help="signed files to check")
     p.set_defaults(func=cmd_verify)
 
     p = with_module(sub.add_parser("certs", help="list the token's certificates and expiry (no PIN)"))
