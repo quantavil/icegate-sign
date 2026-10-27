@@ -139,20 +139,21 @@ def cmd_doctor(args) -> int:
         print(("ok   " if good else "FAIL ") + msg + (f"\n     -> {hint}" if hint and not good else ""))
 
     line(Path(args.module).is_file(), f"PKCS#11 module {args.module}",
-         "install opensc, or pass the vendor library with --module")
-    for unit in ("pcscd.socket", "pcscd.service"):
-        if shutil.which("systemctl"):
-            r = subprocess.run(["systemctl", "is-active", unit], capture_output=True, text=True)
-            if r.stdout.strip() == "active":
-                line(True, f"{unit} active")
-                break
-    else:
-        line(False, "pcscd is not running", "sudo systemctl enable --now pcscd.socket")
-    line(bool(shutil.which("pdfsig")), "pdfsig (optional, cross-checks PDFs)", "sudo pacman -S poppler")
+         "install the token driver (see README) or pass it with --module")
+    if "opensc" in Path(args.module).name:  # the vendor library talks to the USB device itself
+        for unit in ("pcscd.socket", "pcscd.service"):
+            if shutil.which("systemctl"):
+                r = subprocess.run(["systemctl", "is-active", unit], capture_output=True, text=True)
+                if r.stdout.strip() == "active":
+                    line(True, f"{unit} active")
+                    break
+        else:
+            line(False, "pcscd is not running", "sudo systemctl enable --now pcscd.socket")
+    print("ok   pdfsig found" if shutil.which("pdfsig") else "note pdfsig not found (optional: poppler cross-checks PDFs)")
     try:
         info = token.token_info(args.module)
     except Exception as e:
-        line(False, f"token: {e}", "plug it in; check `pcsc_scan -r` and that no Wine token manager is running")
+        line(False, f"token: {e}", "plug it in (`lsusb | grep 2ccf`) and make sure no other program is using the token")
     else:
         line(True, f"token {info['label'] or '?'} ({info['model'] or '?'})")
         line(not info["pin_locked"], "PIN not locked")
@@ -203,7 +204,7 @@ Use 'icegate-sign COMMAND --help' for a command's options.""")
     p = with_module(sub.add_parser("certs", help="list the token's certificates and expiry (no PIN)"))
     p.set_defaults(func=cmd_certs)
 
-    p = with_module(sub.add_parser("doctor", help="diagnose pcscd, PKCS#11 module, token and certificate"))
+    p = with_module(sub.add_parser("doctor", help="check the PKCS#11 module, token, PIN state and certificate"))
     p.set_defaults(func=cmd_doctor)
 
     argv = sys.argv[1:] if argv is None else list(argv)
