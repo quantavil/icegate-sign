@@ -19,10 +19,10 @@ Check with `icegate-sign doctor`. Optional: `poppler` (`pdfsig`) to cross-check 
 
 ```sh
 icegate-sign certs                          # certificate and days until expiry (no PIN)
-icegate-sign invoice.pdf *.sb *.be          # "sign" is optional; one PIN prompt; writes name[signed].ext beside each file
+icegate-sign invoice.pdf *.sb *.be          # "sign" is optional; one PIN prompt; writes name_Signed.ext beside each file
 icegate-sign sign -n *.pdf                  # dry run: no token, no PIN
 icegate-sign sign -o out/ --pages L a.pdf   # other folder; PDF pages A (all, default), F, L or 1,3,5
-icegate-sign verify name[signed].pdf        # integrity check, no token needed
+icegate-sign verify name_Signed.pdf        # integrity check, no token needed
 ```
 
 Other options: `--cert NAME` (several certificates), `--pin-stdin` (read the PIN from stdin for scripts).

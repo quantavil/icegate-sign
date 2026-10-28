@@ -72,6 +72,61 @@ def test_all_pages(src, tmp_path, key):
     assert "(n)Code Solutions" in d["/Name"]
 
 
+def test_signature_appearance(src, tmp_path, key):
+    dest = tmp_path / "styled.pdf"
+    sign_pdf(src, dest, key, "F")
+    with pikepdf.open(dest) as document:
+        appearance = document.pages[0]["/Annots"][0]["/AP"]["/N"].read_bytes()
+        assert b"Digitally signed" in appearance
+        assert b"Test Signer" in appearance
+        assert b"1 1 1 rg" in appearance
+        assert b"Reason" in appearance and b"Location" in appearance
+        assert b"0 0.6 0 rg" not in appearance
+
+
+def test_signature_is_below_original_page(src, tmp_path, key):
+    dest = tmp_path / "footer.pdf"
+    sign_pdf(src, dest, key, "F")
+    with pikepdf.open(src) as original, pikepdf.open(dest) as signed:
+        before = original.pages[0].MediaBox
+        page = signed.pages[0]
+        rect = page["/Annots"][0]["/Rect"]
+        assert rect[2] - rect[0] >= 330
+        assert rect[3] - rect[1] >= 85
+        assert page.MediaBox[1] < before[1]
+        assert rect[3] <= before[1]
+        assert page.MediaBox[0] == before[0] and page.MediaBox[2] == before[2]
+
+
+def test_later_signatures_do_not_alter_page_content(src, tmp_path, key):
+    from pyhanko.pdf_utils.reader import PdfFileReader
+    from pyhanko.sign.diff_analysis import ModificationLevel
+    from pyhanko.sign.validation import validate_pdf_signature
+    from pyhanko_certvalidator import ValidationContext
+
+    dest = tmp_path / 'multiple.pdf'
+    sign_pdf(src, dest, key, 'A')
+    with dest.open('rb') as f:
+        signatures = PdfFileReader(f, strict=False).embedded_signatures
+        for sig in signatures:
+            status = validate_pdf_signature(sig, ValidationContext(trust_roots=[], allow_fetching=False))
+            assert status.intact and status.valid
+            assert status.modification_level != ModificationLevel.OTHER
+
+
+@pytest.mark.parametrize('rotation', [90, 180, 270])
+def test_rotated_pages_can_be_signed(tmp_path, key, rotation):
+    source = tmp_path / 'rotated.pdf'
+    dest = tmp_path / 'signed.pdf'
+    document = pikepdf.new()
+    document.add_blank_page(page_size=(595, 842)).Rotate = rotation
+    document.save(source)
+    assert sign_pdf(source, dest, key, 'F') == 1
+    with pikepdf.open(dest) as signed:
+        assert int(signed.pages[0].Rotate) == rotation
+        assert len(signed.pages[0]['/Annots']) == 1
+
+
 def test_last_and_list(src, tmp_path, key):
     d1 = tmp_path / "l.pdf"
     assert sign_pdf(src, d1, key, "L") == 1

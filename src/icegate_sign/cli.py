@@ -15,7 +15,7 @@ TEXT_SUFFIXES = {".be", ".sb", ".txt", ".xml"}
 
 
 def output_path(path: Path, outdir: Path | None = None) -> Path:
-    return (outdir or path.parent) / (re.sub(r"\s+", "_", path.stem) + "[signed]" + path.suffix)
+    return (outdir or path.parent) / (re.sub(r"\s+", "_", path.stem) + "_Signed" + path.suffix)
 
 
 def _version():
@@ -178,10 +178,10 @@ def main(argv=None) -> int:
   icegate-sign certs                        show the token's certificate and days until expiry
   icegate-sign invoice.pdf *.sb             sign files (asks for the PIN once; same as 'icegate-sign sign ...')
   icegate-sign sign -n *.be                 dry run: check files, no token, no PIN
-  icegate-sign verify invoice[signed].pdf   check signatures
+  icegate-sign verify invoice_Signed.pdf   check signatures
   icegate-sign doctor                       diagnose the setup
 
-Signed files are written as name[signed].ext beside the originals; existing files are never overwritten.
+Signed files are written as name_Signed.ext beside the originals; existing files are never overwritten.
 Use 'icegate-sign COMMAND --help' for a command's options.""")
     ap.add_argument("--version", action="version", version=f"%(prog)s {_version()}")
     sub = ap.add_subparsers(dest="command", required=True, metavar="command")
@@ -190,7 +190,7 @@ Use 'icegate-sign COMMAND --help' for a command's options.""")
         p.add_argument("--module", default=token.DEFAULT_MODULE, help=f"PKCS#11 module (default {token.DEFAULT_MODULE})")
         return p
 
-    p = with_module(sub.add_parser("sign", help="sign BE/SB/TXT/XML and PDF files (writes name[signed].ext)"))
+    p = with_module(sub.add_parser("sign", help="sign BE/SB/TXT/XML and PDF files (writes name_Signed.ext)"))
     p.add_argument("files", nargs="+", type=Path, metavar="FILE", help="files to sign: .be .sb .txt .xml .pdf")
     p.add_argument("--cert", help="certificate label or common name, if the token has several")
     p.add_argument("--pin-stdin", action="store_true", help="read the PIN from stdin instead of prompting (never pass it as an argument)")
